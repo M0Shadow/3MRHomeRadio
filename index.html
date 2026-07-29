@@ -2,8 +2,11 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="utf-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connecting to Live Radio...</title>
+    <title>3MR Home Radio - Live Stream</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,7 +16,7 @@
             color: #ffffff;
         }
         .card {
-            max-width: 400px;
+            max-width: 450px;
             margin: 0 auto;
             background: #1e1e1e;
             padding: 30px;
@@ -30,19 +33,21 @@
             border-radius: 8px;
             font-weight: bold;
         }
+        .btn:hover {
+            background-color: #00aaff;
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>📻 Radio Live Server</h2>
-        <p>Redirecting you automatically to the live stream...</p>
-        <a href="https://f7b92f91ce6a59.lhr.life" class="btn">Click Here for Direct Link</a>
+        <p>Connecting you to the live home server...</p>
+        <a href="https://d0724ec7829c6a.lhr.life" class="btn">Click Here to Open Radio</a>
     </div>
 
     <script>
-        setTimeout(function() {
-            window.location.href = "https://f7b92f91ce6a59.lhr.life";
-        }, 1000);
+        // توجيه فوري مع منع العودة لصفحة قديمة
+        window.location.replace("https://d0724ec7829c6a.lhr.life");
     </script>
 </body>
 </html>
