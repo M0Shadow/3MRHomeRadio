@@ -1,63 +1,382 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📻 راديو المنزل - جاري الاتصال...</title>
+    <title>📻 راديو مباشر</title>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background-color: #121218; color: #ffffff;
-               display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
-        .card { background: #1e1e2a; padding: 35px 25px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                max-width: 400px; width: 100%; border: 1px solid #2d2d3f; }
-        .spinner { border: 4px solid rgba(255,255,255,0.1); border-left-color: #4CAF50; border-radius: 50%;
-                   width: 45px; height: 45px; animation: spin 0.9s linear infinite; margin: 0 auto 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        h2 { margin: 0 0 10px 0; font-size: 20px; color: #e2e2e9; }
-        p { margin: 0 0 15px 0; font-size: 14px; color: #9393a5; line-height: 1.5; }
-        .btn { display: inline-block; margin-top: 15px; padding: 12px 24px; background-color: #4CAF50;
-               color: #fff; text-decoration: none; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; transition: 0.2s; }
-        .btn:hover { background-color: #43a047; }
+        :root {
+            --bg-body: #16161e;
+            --bg-card: #1f1f2e;
+            --bg-input: #15151f;
+            --border: #2f2f42;
+            --text-main: #e2e2e9;
+            --text-muted: #9393a5;
+            --primary: #4CAF50;
+            --primary-hover: #43a047;
+            --danger: #fa5252;
+            --danger-hover: #e03131;
+            --success: #51cf66;
+            --warning: #fcc419;
+            --radius: 14px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            background: var(--bg-card);
+            padding: 30px 25px;
+            border-radius: var(--radius);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+        }
+
+        .header { text-align: center; margin-bottom: 25px; }
+        .header h1 { margin: 0 0 5px 0; font-size: 24px; font-weight: 700; color: var(--text-main); }
+        .header p { margin: 0; font-size: 14px; color: var(--text-muted); }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: #b0b0c0; }
+
+        select {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2); }
+        optgroup { color: var(--primary); font-weight: bold; }
+        option { color: var(--text-main); background-color: var(--bg-input); }
+
+        .btn-group { display: flex; gap: 12px; margin-top: 10px; margin-bottom: 20px; }
+        button {
+            flex: 1; padding: 14px; border: none; border-radius: 10px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s; color: white; display: flex;
+            justify-content: center; align-items: center; gap: 6px;
+        }
+        button:active { transform: scale(0.96); }
+
+        .btn-play { background-color: var(--primary); }
+        .btn-play:hover { background-color: var(--primary-hover); }
+        .btn-stop { background-color: var(--danger); }
+        .btn-stop:hover { background-color: var(--danger-hover); }
+
+        .status-box {
+            text-align: center; min-height: 40px; display: flex;
+            align-items: center; justify-content: center; margin-bottom: 15px;
+            font-size: 14px; font-weight: 500; padding: 10px; border-radius: 10px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        #loading { color: var(--warning); display: none; }
+        #error { color: var(--danger); display: none; }
+        #info { color: var(--success); display: none; }
+
+        audio { width: 100%; height: 44px; border-radius: 10px; outline: none; }
+        .hint { margin-top: 20px; font-size: 12px; color: var(--text-muted); text-align: center; line-height: 1.5; }
     </style>
+<script>window.REMOTE_SERVER_URL = 'https://sage-instrumental-along-prot.trycloudflare.com';</script>
 </head>
 <body>
-    <div class="card">
-        <div class="spinner" id="loader"></div>
-        <h2>📻 راديو المنزل المباشر</h2>
-        <p id="status-text">جاري الاتصال بالسيرفر والتحقق من النفق المباشر...</p>
-        <a id="direct-link" href="https://hood-statutes-reggae-hostel.trycloudflare.com" class="btn" style="display:none;">الدخول المباشر للراديو</a>
+    <div class="app-container">
+        <div class="header">
+            <h1>📻 راديو مباشر</h1>
+            <p>اختر المحطة وابدأ الاستماع</p>
+        </div>
+
+        <div class="form-group">
+            <label for="stationSelect">📡 المحطة والتردد</label>
+            <select id="stationSelect">
+                {% for cat in stations.keys() %}
+                <optgroup label="{{ category_labels.get(cat, cat.replace('_', ' ')) }}">
+                    {% for stat in stations[cat].keys() %}
+                    <option value="{{ cat }}::{{ stat }}"{% if stat.startswith('Quran Kareem') %} selected{% endif %}>{{ stat }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="bitrate">🎛️ جودة البث</label>
+            <select id="bitrate">
+                <option value="direct">🚀 الجودة الأصلية (بدون ضغط - استهلاك عالي متغير)</option>
+                <option value="64k">🎵 جودة عالية (64k) — استهلاك ≈28.8 ميجا/ساعة</option>
+                <option value="32k">🎧 جودة جيدة (32k) — استهلاك ≈14.4 ميجا/ساعة</option>
+                <option disabled>──────────────</option>
+                <option value="24k" selected>📶 جودة متوازنة (24k) — استهلاك ≈10.8 ميجا/ساعة</option>
+                <option value="20k">📻 جودة بسيطة (20k) — استهلاك ≈9 ميجا/ساعة</option>
+                <option value="16k">🔈 جودة منخفضة (16k) — استهلاك ≈7.2 ميجا/ساعة</option>
+            </select>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-play" onclick="playStream()">▶️ تشغيل</button>
+            <button class="btn-stop" onclick="stopStream()">⏹️ إيقاف</button>
+        </div>
+
+        <div class="status-box">
+            <span id="loading">⏳ جارٍ الاتصال بالمحطة...</span>
+            <span id="error"></span>
+            <span id="info">✅ البث يعمل الآن بنجاح</span>
+        </div>
+
+        <audio id="player" controls preload="none" crossorigin="anonymous" playsinline></audio>
+
+        <div class="hint">
+            💡 جميع الجودات المضغوطة ثابتة الاستهلاك تماماً لتوفير الباقة.
+        </div>
     </div>
+
     <script>
-        async function connectToRadio() {
-            const statusText = document.getElementById('status-text');
-            const directBtn = document.getElementById('direct-link');
+        let audioCtx = null;
+        let mediaSourceNode = null;
+        let gainNode = null;
+        let compressorNode = null;
+
+        let currentSelection = null;
+        let reconnectAttempts = 0;
+        let reconnectTimer = null;
+        let stallWatchdog = null;
+        let lastCurrentTime = -1;
+        let lastProgressTimestamp = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        const STALL_LIMIT_MS = 20000; // Allow up to 20s total freeze before force reconnection
+
+        let playToken = 0;
+
+        function setupAudioGraph() {
+            if (audioCtx) return; 
             try {
-                // Fetch dynamic status without cache
-                const res = await fetch('status.json?t=' + Date.now(), { cache: 'no-store' });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.url) {
-                        // Ping live tunnel to confirm it's reachable
-                        try {
-                            const ping = await fetch(data.url + '/ping', { method: 'GET', mode: 'cors' });
-                            if (ping.ok) {
-                                statusText.innerText = "تم الاتصال بنجاح! جاري تحويلك...";
-                                directBtn.href = data.url;
-                                directBtn.style.display = "inline-block";
-                                window.location.href = data.url;
-                                return;
-                            }
-                        } catch (e) {
-                            console.log("Tunnel ping failed, retrying...", e);
-                        }
-                    }
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const player = document.getElementById('player');
+                
+                if (!mediaSourceNode) {
+                    mediaSourceNode = audioCtx.createMediaElementSource(player);
                 }
+
+                compressorNode = audioCtx.createDynamicsCompressor();
+                compressorNode.threshold.setValueAtTime(-12, audioCtx.currentTime);
+                compressorNode.knee.setValueAtTime(20, audioCtx.currentTime);
+                compressorNode.ratio.setValueAtTime(4, audioCtx.currentTime);
+                compressorNode.attack.setValueAtTime(0.003, audioCtx.currentTime);
+                compressorNode.release.setValueAtTime(0.25, audioCtx.currentTime);
+
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = 1.5; 
+
+                mediaSourceNode.connect(gainNode);
+                gainNode.connect(compressorNode);
+                compressorNode.connect(audioCtx.destination);
             } catch (e) {
-                console.log("Status fetch failed:", e);
+                console.error('Audio boost setup warning:', e);
             }
-            statusText.innerText = "السيرفر يعيد تشغيل الاتصال أو جاري تجهيز النفق... سنحاول مجدداً خلال 3 ثوانٍ";
-            setTimeout(connectToRadio, 3000);
         }
-        connectToRadio();
+
+        function clearTimers() {
+            if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            if (stallWatchdog) { clearInterval(stallWatchdog); stallWatchdog = null; }
+        }
+
+        function stopStream() {
+            currentSelection = null; 
+            reconnectAttempts = 0;
+            playToken++; 
+            clearTimers();
+
+            const player = document.getElementById("player");
+            player.onplaying = null;
+            player.onerror = null;
+            player.onended = null;
+            player.onwaiting = null;
+            player.pause();
+            player.removeAttribute("src");
+            player.load();
+            
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("error").style.display = "none";
+            document.getElementById("info").style.display = "none";
+        }
+
+        function showLoading(msg) {
+            document.getElementById("error").style.display = "none";
+            document.getElementById("info").style.display = "none";
+            const loading = document.getElementById("loading");
+            loading.innerText = msg || "⏳ جارٍ الاتصال بالمحطة...";
+            loading.style.display = "inline";
+        }
+
+        function showFatalError(msg) {
+            clearTimers();
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("info").style.display = "none";
+            const errorDiv = document.getElementById("error");
+            errorDiv.innerText = msg;
+            errorDiv.style.display = "inline";
+        }
+
+        function getBaseUrl() {
+            if (window.REMOTE_SERVER_URL && window.REMOTE_SERVER_URL.startsWith("http")) {
+                return window.REMOTE_SERVER_URL.replace(/\/$/, "");
+            }
+            return "";
+        }
+
+        function startPlayback(isReconnect) {
+            if (!currentSelection) return;
+            const { category, station, bitrate } = currentSelection;
+            const player = document.getElementById("player");
+
+            playToken++;
+            const myToken = playToken;
+            clearTimers();
+
+            player.onplaying = null;
+            player.onerror = null;
+            player.onended = null;
+            player.onwaiting = null;
+
+            showLoading(isReconnect
+                ? `🔄 إعادة الاتصال... (محاولة ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`
+                : "⏳ جارٍ الاتصال بالمحطة...");
+
+            setupAudioGraph();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            player.pause();
+            player.removeAttribute("src");
+            player.load();
+
+            const baseUrl = getBaseUrl();
+            const streamUrl = `${baseUrl}/stream?cat=${encodeURIComponent(category)}&stat=${encodeURIComponent(station)}&bitrate=${bitrate}&t=${Date.now()}`;
+
+            player.onplaying = function() {
+                if (myToken !== playToken) return; 
+                reconnectAttempts = 0;
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("info").style.display = "inline";
+                startStallWatchdog(myToken);
+            };
+
+            // ONLY trigger reconnect on actual HARD errors or end of stream
+            player.onerror = function() {
+                if (myToken !== playToken) return;
+                handlePlaybackDrop();
+            };
+
+            player.onended = function() {
+                if (myToken !== playToken) return;
+                handlePlaybackDrop();
+            };
+
+            // Handle normal buffering gracefully WITHOUT reconnecting/tearing down stream
+            player.onwaiting = function() {
+                if (myToken !== playToken) return;
+                document.getElementById("info").style.display = "none";
+                document.getElementById("loading").innerText = "⏳ جارٍ مؤقتاً تجميع الصوت (Buffering)...";
+                document.getElementById("loading").style.display = "inline";
+            };
+
+            player.src = streamUrl;
+            player.load();
+
+            player.play().catch(err => {
+                if (myToken !== playToken) return; 
+                if (err && err.name === 'AbortError') return; 
+                if (isReconnect) {
+                    handlePlaybackDrop();
+                } else {
+                    document.getElementById("loading").style.display = "none";
+                    showFatalError("⚠️ اضغط زر التشغيل داخل المشغل.");
+                }
+            });
+        }
+
+        function startStallWatchdog(myToken) {
+            if (stallWatchdog) clearInterval(stallWatchdog);
+            const player = document.getElementById("player");
+            lastCurrentTime = player.currentTime;
+            lastProgressTimestamp = Date.now();
+
+            stallWatchdog = setInterval(function() {
+                if (myToken !== playToken) { clearInterval(stallWatchdog); stallWatchdog = null; return; }
+                if (!currentSelection || player.paused) return;
+
+                if (player.currentTime !== lastCurrentTime) {
+                    lastCurrentTime = player.currentTime;
+                    lastProgressTimestamp = Date.now();
+                    return;
+                }
+
+                // If playback position has been completely frozen for more than STALL_LIMIT_MS
+                if (Date.now() - lastProgressTimestamp > STALL_LIMIT_MS) {
+                    handlePlaybackDrop();
+                }
+            }, 4000);
+        }
+
+        function handlePlaybackDrop() {
+            if (!currentSelection) return; 
+            clearTimers();
+            document.getElementById("info").style.display = "none";
+
+            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                showFatalError("⚠️ تعذر الاتصال بالمحطة حالياً. يرجى المحاولة لاحقاً.");
+                return;
+            }
+
+            reconnectAttempts++;
+            const delay = Math.min(1500 * reconnectAttempts, 8000);
+            showLoading(`🔄 انقطع البث، نعاود الاتصال... (${reconnectAttempts})`);
+            reconnectTimer = setTimeout(function() {
+                startPlayback(true);
+            }, delay);
+        }
+
+        function playStream() {
+            const combined = document.getElementById("stationSelect").value;
+            const bitrate = document.getElementById("bitrate").value;
+            
+            document.getElementById("error").style.display = "none";
+            document.getElementById("info").style.display = "none";
+
+            if (!combined) {
+                showFatalError("❌ يرجى اختيار المحطة أولاً.");
+                return;
+            }
+
+            const [category, station] = combined.split("::");
+
+            reconnectAttempts = 0;
+            currentSelection = { category, station, bitrate };
+            startPlayback(false);
+        }
     </script>
 </body>
 </html>
