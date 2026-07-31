@@ -3,6 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Connecting to Live Radio...</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center;
@@ -16,11 +19,14 @@
 <body>
     <div class="card">
         <h2>Radio Live Server</h2>
-        <p>Redirecting you automatically to the live stream...</p>
-        <a href="https://69e08136806e8c.lhr.life" class="btn">Click Here for Direct Link</a>
+        <p>Redirecting you automatically to the active live stream...</p>
+        <a id="manual-link" href="https://7825a95db26558.lhr.life" class="btn">Click Here for Direct Link</a>
     </div>
     <script>
-        setTimeout(function() { window.location.href = "https://69e08136806e8c.lhr.life"; }, 1000);
+        var liveUrl = "https://7825a95db26558.lhr.life";
+        var noCacheUrl = liveUrl + "?_t=" + new Date().getTime();
+        document.getElementById('manual-link').href = noCacheUrl;
+        setTimeout(function() { window.location.replace(noCacheUrl); }, 800);
     </script>
 </body>
 </html>
