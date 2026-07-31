@@ -1,26 +1,214 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connecting to Live Radio...</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>3MR Home Radio</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center;
-                padding: 50px 20px; background-color: #121212; color: #ffffff; }
-        .card { max-width: 400px; margin: 0 auto; background: #1e1e1e; padding: 30px;
-                 border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .btn { display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #0088cc;
-                color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111318;
+            color: #f1f3f5;
+            font-family: system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        .card {
+            width: 100%;
+            max-width: 460px;
+            background: #1b1f2a;
+            border: 1px solid #2d3444;
+            border-radius: 18px;
+            padding: 28px 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            text-align: center;
+        }
+        .brand {
+            font-size: 15px;
+            color: #8fa0c7;
+            margin-bottom: 10px;
+        }
+        h1 {
+            margin: 0 0 12px 0;
+            font-size: 24px;
+            line-height: 1.35;
+        }
+        .status {
+            margin: 0;
+            min-height: 56px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #dbe4ff;
+        }
+        .meta {
+            margin-top: 14px;
+            font-size: 12px;
+            color: #96a0b5;
+            min-height: 18px;
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 18px;
+            padding: 12px 18px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #fff;
+            background: #2f9e44;
+            font-weight: 700;
+        }
+        .btn:hover { background: #2b8a3e; }
+        .hint {
+            margin-top: 16px;
+            font-size: 12px;
+            color: #98a2b3;
+            line-height: 1.6;
+        }
+        .pulse {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #74c0fc;
+            box-shadow: 0 0 0 0 rgba(116, 192, 252, 0.6);
+            animation: pulse 1.5s infinite;
+            vertical-align: middle;
+            margin-inline-end: 8px;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(116, 192, 252, 0.65); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(116, 192, 252, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(116, 192, 252, 0); }
+        }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Radio Live Server</h2>
-        <p>Redirecting you automatically to the live stream...</p>
-        <a href="https://inns-gas-playing-wine.trycloudflare.com" class="btn">Click Here for Direct Link</a>
+        <div class="brand">3MR Home Radio</div>
+        <h1>جارٍ الاتصال بالبث المباشر</h1>
+        <p class="status" id="status"><span class="pulse"></span>يتم التحقق من أحدث رابط متاح الآن...</p>
+        <a id="openBtn" class="btn" href="#" rel="noreferrer noopener" target="_blank">فتح الرابط مباشرة</a>
+        <div class="meta" id="meta"></div>
+        <div class="hint">
+            هذه الصفحة لا تحوّل فورًا إلى رابط قديم. ستتحقق من الرابط الحالي وتعيد المحاولة تلقائيًا
+            حتى يصبح متاحًا، لتجنب صفحة الخطأ عند انقطاع التونل لحظة التبديل.
+        </div>
     </div>
+
     <script>
-        setTimeout(function() { window.location.href = "https://inns-gas-playing-wine.trycloudflare.com"; }, 1000);
+        const STATUS_FILE = './current.json';
+        const statusEl = document.getElementById('status');
+        const metaEl = document.getElementById('meta');
+        const openBtn = document.getElementById('openBtn');
+
+        let stopped = false;
+        let loopRunning = false;
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function fetchJsonWithTimeout(url, timeoutMs = 4500) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, {
+                    cache: 'no-store',
+                    credentials: 'omit',
+                    signal: controller.signal
+                });
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                return await res.json();
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        async function probeUrl(url, timeoutMs = 3500) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const probe = url + (url.includes('?') ? '&' : '?') + 'probe=' + Date.now();
+                await fetch(probe, {
+                    mode: 'no-cors',
+                    cache: 'no-store',
+                    credentials: 'omit',
+                    signal: controller.signal
+                });
+                return true;
+            } catch (e) {
+                return false;
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        async function resolveCurrentUrl() {
+            const data = await fetchJsonWithTimeout(STATUS_FILE + '?t=' + Date.now());
+            if (!data || !data.url) {
+                throw new Error('Missing URL');
+            }
+            return data;
+        }
+
+        async function runLoop() {
+            if (loopRunning || stopped) return;
+            loopRunning = true;
+
+            try {
+                while (!stopped) {
+                    try {
+                        const data = await resolveCurrentUrl();
+                        openBtn.href = data.url;
+                        metaEl.textContent = data.updated_at_text ? ('آخر تحديث: ' + data.updated_at_text) : '';
+                        statusEl.innerHTML = '<span class="pulse"></span>تم العثور على الرابط الحالي، جارٍ التحقق منه...';
+
+                        const ok = await probeUrl(data.url);
+                        if (ok) {
+                            statusEl.textContent = 'جاري الفتح الآن...';
+                            window.location.replace(data.url);
+                            return;
+                        }
+
+                        statusEl.innerHTML = '<span class="pulse"></span>الرابط الحالي غير مستجيب، أعاود المحاولة تلقائيًا...';
+                    } catch (e) {
+                        statusEl.innerHTML = '<span class="pulse"></span>جارٍ انتظار تحديث الرابط المباشر...';
+                    }
+
+                    await sleep(2000);
+                }
+            } finally {
+                loopRunning = false;
+            }
+        }
+
+        openBtn.addEventListener('click', async function (ev) {
+            ev.preventDefault();
+            const href = openBtn.href;
+            if (href && href !== '#') {
+                window.location.href = href;
+            }
+        });
+
+        window.addEventListener('focus', function () {
+            runLoop();
+        });
+
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) {
+                runLoop();
+            }
+        });
+
+        runLoop();
     </script>
 </body>
 </html>
